@@ -39,6 +39,13 @@
 *.out
 *.app
 
+# Asset directories
+.aseprite/
+assets/
+asset/
+Assets/
+Asset/
+
 # Build directories
 build/
 Build/
@@ -67,3 +74,7 @@ vcpkg_installed/
 # test output & cache
 Testing/
 .cache/
+
+# clangd
+.clangd
+.clang-format
