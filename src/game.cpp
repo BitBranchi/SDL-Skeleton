@@ -1,13 +1,13 @@
 #pragma once
 
 #include "input.cpp"
+#include "resource_manager.cpp"
+#include "texture.h"
 #include <SDL.h>
-#include <SDL_events.h>
 #include <SDL_image.h>
 #include <SDL_mixer.h>
-#include <SDL_scancode.h>
-#include <SDL_stdinc.h>
-#include <SDL_timer.h>
+#include <SDL_rect.h>
+#include <SDL_render.h>
 #include <SDL_ttf.h>
 #include <SDL_video.h>
 #include <iostream>
@@ -39,6 +39,7 @@ bool init() {
     std::cout << "Failed creating renderer : " << SDL_GetError();
     return false;
   }
+  ResourceManager::tRenderer = RENDERER;
   // -------- Init other SDL2 extensions --------
   // These included : SDL_Image, SDL_Mixer, Open Audio
   int FLAGS = IMG_INIT_PNG | IMG_INIT_JPG;
@@ -67,6 +68,10 @@ bool init() {
   // -------- Init Component Contexts --------
   return true;
 }
+
+//----------------------------------------------------------------------------------------//
+// MAIN LOOP
+//----------------------------------------------------------------------------------------//
 bool loop() {
   while (SDL_PollEvent(&EVENT)) {
     switch (EVENT.type) {
@@ -85,11 +90,21 @@ bool loop() {
     return false;
   }
 
+  SDL_Rect r{0, 0, 32, 32};
+
+  SDL_RenderCopy(RENDERER, ResourceManager::get(Texture::NO_TEXTURE), NULL, &r);
+  SDL_RenderPresent(RENDERER);
+
   Input::lateUpdate();
   return true;
 }
 
+//----------------------------------------------------------------------------------------//
+// KILL
+//----------------------------------------------------------------------------------------//
 void kill() {
+  ResourceManager::tRenderer = NULL;
+  ResourceManager::kill();
   SDL_DestroyRenderer(RENDERER);
   SDL_DestroyWindow(WINDOW);
   Mix_CloseAudio();
