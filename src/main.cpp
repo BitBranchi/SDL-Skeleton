@@ -1,8 +1,11 @@
-#include <SDL2/SDL.h>
-#include <iostream>
+#include "game.cpp"
 
 int main(int argc, char *argv[]) {
-  std::cout << "Hello World";
-  std::system("pause");
+  if (!Game::init()) {
+    return 1;
+  }
+  while (Game::loop()) {
+  }
+  Game::kill();
   return 0;
 }
