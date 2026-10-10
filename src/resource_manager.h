@@ -4,50 +4,56 @@
 #include <SDL_image.h>
 #include <SDL_log.h>
 #include <SDL_render.h>
-#include <string>
-#include <unordered_map>
+#include <cassert>
+#include <vector>
 
 namespace ResourceManager {
 
 inline SDL_Renderer *tRenderer = nullptr;
-inline std::unordered_map<std::string, SDL_Texture *> cache;
-inline SDL_Texture *missingTex = nullptr; // shared fallback, owned separately
+inline std::vector<SDL_Texture *> cache = {};
 
 inline SDL_Rect panelRect[9];
 inline bool panelRectReady = false;
+
+// Config
 inline constexpr int PANEL_BORDER = 48;
+
+// Must run this function first to initialize reosurce manager.
+inline void init(SDL_Renderer *renderer) {
+  if (!renderer) {
+    SDL_Log("ResourceManager::init called with null renderer");
+    return;
+  }
+  tRenderer = renderer;
+  cache.assign(static_cast<size_t>(TextureID::Count), nullptr);
+}
 
 // Loads on first request, cached afterwards. Fetch once and store the pointer
 // rather than calling this every frame.
-inline SDL_Texture *get(const std::string &path) {
-  auto it = cache.find(path);
-  if (it != cache.end())
-    return it->second;
+inline SDL_Texture *get(TextureID ID) {
+  const size_t index = static_cast<size_t>(ID);
+  assert(index < static_cast<size_t>(TextureID::Count));
 
-  SDL_Texture *tex = IMG_LoadTexture(tRenderer, path.c_str());
-  if (tex) {
-    cache.emplace(path, tex);
-    return tex;
+  SDL_Texture *&slot = cache[index];
+  if (slot)
+    return slot;
+
+  slot = IMG_LoadTexture(tRenderer, Paths[index]);
+  if (!slot) {
+    SDL_Log("Failed to load '%s': %s", Paths[index], IMG_GetError());
+    slot = IMG_LoadTexture(
+        tRenderer, Paths[static_cast<size_t>(TextureID::NoTexture)]);
   }
-
-  SDL_Log("Failed to load '%s': %s", path.c_str(), IMG_GetError());
-
-  // Failures are not cached, so a bad path retries (and logs) every time.
-  if (!missingTex) {
-    missingTex = IMG_LoadTexture(tRenderer, Texture::NO_TEXTURE);
-    if (!missingTex)
-      SDL_Log("Fallback texture failed too: %s", IMG_GetError());
-  }
-  return missingTex; // may still be null if the fallback is missing
+  return slot;
 }
 
 // Call once, after tRenderer is set (or lazily before the first panel/button
 // is drawn).
-inline void ensurePanelRect(const std::string &sourcePath = Texture::PANEL_BRIGHT) {
+inline void ensurePanelRect(TextureID ID = TextureID::PanelBright) {
   if (panelRectReady)
     return;
 
-  SDL_Texture *tex = get(sourcePath);
+  SDL_Texture *tex = get(ID);
   if (!tex)
     return; // even the fallback failed; avoid querying a null texture
 
@@ -73,11 +79,11 @@ inline void ensurePanelRect(const std::string &sourcePath = Texture::PANEL_BRIGH
 // This should be called only when the game is closing, before the renderer
 // is destroyed.
 inline void kill() {
-  for (auto &item : cache)
-    SDL_DestroyTexture(item.second);
+  for (SDL_Texture *tex : cache) {
+    if (tex)
+      SDL_DestroyTexture(tex);
+  }
   cache.clear();
-  SDL_DestroyTexture(missingTex); // safe on nullptr
-  missingTex = nullptr;
   panelRectReady = false;
   tRenderer = nullptr;
 }

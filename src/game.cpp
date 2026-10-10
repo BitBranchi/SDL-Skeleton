@@ -1,13 +1,12 @@
 #pragma once
 
-#include "input.cpp"
-#include "resource_manager.cpp"
+#include "input.h"
+#include "resource_manager.h"
 #include "texture.h"
 #include <SDL.h>
 #include <SDL_image.h>
 #include <SDL_mixer.h>
-#include <SDL_rect.h>
-#include <SDL_render.h>
+#include <SDL_scancode.h>
 #include <SDL_ttf.h>
 #include <SDL_video.h>
 #include <iostream>
@@ -20,6 +19,7 @@ SDL_Event EVENT;
 const int SCREEN_DIMENSION[2] = {1000, 600};
 float PERFORMANCE_FREQUENCY = SDL_GetPerformanceFrequency();
 Uint64 last_tick = SDL_GetPerformanceCounter();
+SDL_Rect r{0, 0, 32, 32};
 
 bool init() {
   if (SDL_Init(SDL_INIT_EVERYTHING) < 0) {
@@ -39,7 +39,7 @@ bool init() {
     std::cout << "Failed creating renderer : " << SDL_GetError();
     return false;
   }
-  ResourceManager::tRenderer = RENDERER;
+  ResourceManager::init(RENDERER);
   // -------- Init other SDL2 extensions --------
   // These included : SDL_Image, SDL_Mixer, Open Audio
   int FLAGS = IMG_INIT_PNG | IMG_INIT_JPG;
@@ -73,6 +73,7 @@ bool init() {
 // MAIN LOOP
 //----------------------------------------------------------------------------------------//
 bool loop() {
+  // Event Polling
   while (SDL_PollEvent(&EVENT)) {
     switch (EVENT.type) {
     case SDL_QUIT:
@@ -81,6 +82,8 @@ bool loop() {
       break;
     }
   }
+
+  // Game Update
   Uint64 current_tick = SDL_GetPerformanceCounter();
   float dt = (float)((current_tick - last_tick) / PERFORMANCE_FREQUENCY);
   last_tick = current_tick;
@@ -90,9 +93,8 @@ bool loop() {
     return false;
   }
 
-  SDL_Rect r{0, 0, 32, 32};
-
-  SDL_RenderCopy(RENDERER, ResourceManager::get(Texture::NO_TEXTURE), NULL, &r);
+  // Rendering
+  SDL_RenderCopy(RENDERER, ResourceManager::get(TextureID::PanelBright), NULL, &r);
   SDL_RenderPresent(RENDERER);
 
   Input::lateUpdate();
@@ -103,7 +105,6 @@ bool loop() {
 // KILL
 //----------------------------------------------------------------------------------------//
 void kill() {
-  ResourceManager::tRenderer = NULL;
   ResourceManager::kill();
   SDL_DestroyRenderer(RENDERER);
   SDL_DestroyWindow(WINDOW);

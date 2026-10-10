@@ -1,16 +1,34 @@
 #ifndef TEXTURE_H
 #define TEXTURE_H
 
+#include <array>
+#include <cstddef>
+
 #define UI_PATH "assets/ui/"
 
-namespace Texture {
-constexpr const char *NO_TEXTURE = "assets/no_texture.png";
+enum class TextureID : size_t {
+  NoTexture,
 
-constexpr const char *PANEL_BRIGHT = UI_PATH "panel_bright.png";
-constexpr const char *PANEL_DARK = UI_PATH "panel_dark.png";
+  // UI
+  PanelBright,
+  PanelDark,
+  ButtonBright,
+  ButtonDark,
 
-constexpr const char *BUTTON_BRIGHT = UI_PATH "button_bright.png";
-constexpr const char *BUTTON_DARK = UI_PATH "button_dark.png";
-} // namespace Texture
+  Count,
+};
+
+inline constexpr std::array Paths = {
+    "assets/no_texture.png",     // NoTexture
+    UI_PATH "panel_bright.png",  // PanelBright
+    UI_PATH "panel_dark.png",    // PanelDark
+    UI_PATH "button_bright.png", // ButtonBright
+    UI_PATH "button_dark.png",   // ButtonDark
+};
+
+static_assert(Paths.size() == static_cast<size_t>(TextureID::Count),
+              "Paths must have one entry per TextureID");
+
+#undef UI_PATH
 
 #endif
