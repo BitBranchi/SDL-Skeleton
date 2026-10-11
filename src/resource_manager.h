@@ -38,11 +38,11 @@ inline SDL_Texture *get(TextureID ID) {
   if (slot)
     return slot;
 
-  slot = IMG_LoadTexture(tRenderer, Paths[index]);
+  slot = IMG_LoadTexture(tRenderer, TexturePaths[index]);
   if (!slot) {
-    SDL_Log("Failed to load '%s': %s", Paths[index], IMG_GetError());
+    SDL_Log("Failed to load '%s': %s", TexturePaths[index], IMG_GetError());
     slot = IMG_LoadTexture(
-        tRenderer, Paths[static_cast<size_t>(TextureID::NoTexture)]);
+        tRenderer, TexturePaths[static_cast<size_t>(TextureID::NoTexture)]);
   }
   return slot;
 }

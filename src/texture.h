@@ -18,7 +18,7 @@ enum class TextureID : size_t {
   Count,
 };
 
-inline constexpr std::array Paths = {
+inline constexpr std::array TexturePaths = {
     "assets/no_texture.png",     // NoTexture
     UI_PATH "panel_bright.png",  // PanelBright
     UI_PATH "panel_dark.png",    // PanelDark
@@ -26,7 +26,7 @@ inline constexpr std::array Paths = {
     UI_PATH "button_dark.png",   // ButtonDark
 };
 
-static_assert(Paths.size() == static_cast<size_t>(TextureID::Count),
+static_assert(TexturePaths.size() == static_cast<size_t>(TextureID::Count),
               "Paths must have one entry per TextureID");
 
 #undef UI_PATH

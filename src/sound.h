@@ -5,20 +5,31 @@
 #include <cstddef>
 
 #define SOUND_PATH "assets/sound/"
+#define MUSIC_PATH "assets/music/"
 
-enum class SoundID : size_t {
+//-------- Musics --------//
+enum class MusicID : size_t {
   SHUTTER,
-
   Count,
 };
+inline constexpr std::array MusicPaths = {
+    MUSIC_PATH "shutter.ogg", // SHUTTER
+};
+static_assert(MusicPaths.size() == static_cast<size_t>(MusicID::Count),
+              "Paths must have one entry per MusicID");
 
-inline constexpr std::array Paths = {
+//-------- Sounds --------//
+enum class SoundID : size_t {
+  SHUTTER,
+  Count,
+};
+inline constexpr std::array SoundPaths = {
     SOUND_PATH "shutter.ogg", // SHUTTER
 };
-
-static_assert(Paths.size() == static_cast<size_t>(SoundID::Count),
+static_assert(SoundPaths.size() == static_cast<size_t>(SoundID::Count),
               "Paths must have one entry per SoundID");
 
 #undef SOUND_PATH
+#undef MUSIC_PATH
 
 #endif

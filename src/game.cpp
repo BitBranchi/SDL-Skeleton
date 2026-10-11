@@ -2,6 +2,8 @@
 
 #include "input.h"
 #include "resource_manager.h"
+#include "sound.h"
+#include "sound_manager.h"
 #include "texture.h"
 #include <SDL.h>
 #include <SDL_image.h>
@@ -39,7 +41,6 @@ bool init() {
     std::cout << "Failed creating renderer : " << SDL_GetError();
     return false;
   }
-  ResourceManager::init(RENDERER);
   // -------- Init other SDL2 extensions --------
   // These included : SDL_Image, SDL_Mixer, Open Audio
   int FLAGS = IMG_INIT_PNG | IMG_INIT_JPG;
@@ -66,6 +67,8 @@ bool init() {
   }
 
   // -------- Init Component Contexts --------
+  ResourceManager::init(RENDERER);
+  SoundManager::init();
   return true;
 }
 
@@ -106,6 +109,7 @@ bool loop() {
 //----------------------------------------------------------------------------------------//
 void kill() {
   ResourceManager::kill();
+  SoundManager::kill();
   SDL_DestroyRenderer(RENDERER);
   SDL_DestroyWindow(WINDOW);
   Mix_CloseAudio();
