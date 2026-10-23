@@ -2,7 +2,6 @@
 
 #include "input.h"
 #include "resource_manager.h"
-#include "sound.h"
 #include "sound_manager.h"
 #include "texture.h"
 #include <SDL.h>
