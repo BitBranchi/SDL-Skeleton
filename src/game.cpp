@@ -2,8 +2,11 @@
 
 #include "input.h"
 #include "resource_manager.h"
+#include "sound.h"
 #include "sound_manager.h"
 #include "texture.h"
+#include "ui/UICore.h"
+
 #include <SDL.h>
 #include <SDL_image.h>
 #include <SDL_mixer.h>
@@ -22,6 +25,9 @@ float PERFORMANCE_FREQUENCY = SDL_GetPerformanceFrequency();
 Uint64 last_tick = SDL_GetPerformanceCounter();
 SDL_Rect r{0, 0, 32, 32};
 
+// Game::init used to initialize components before game or program start.
+// This method should only be called once.
+// return false if failed.
 bool init() {
   if (SDL_Init(SDL_INIT_EVERYTHING) < 0) {
     std::cout << "Failed to init SDL2 : " << SDL_GetError();
@@ -67,13 +73,14 @@ bool init() {
 
   // -------- Init Component Contexts --------
   ResourceManager::init(RENDERER);
+  UI::init(RENDERER);
   SoundManager::init();
+  SoundManager::play(SoundID::SHUTTER);
   return true;
 }
 
-//----------------------------------------------------------------------------------------//
-// MAIN LOOP
-//----------------------------------------------------------------------------------------//
+// Game::loop used to call game loop for updating.
+// return false when game stop or crash.
 bool loop() {
   // Event Polling
   while (SDL_PollEvent(&EVENT)) {
@@ -87,9 +94,10 @@ bool loop() {
 
   // Game Update
   Uint64 current_tick = SDL_GetPerformanceCounter();
-  float dt = (float)((current_tick - last_tick) / PERFORMANCE_FREQUENCY);
+  float dt = (float)((current_tick - last_tick) / PERFORMANCE_FREQUENCY); // Delta Time
   last_tick = current_tick;
 
+  // Update when press escape
   Input::update();
   if (Input::isKeyPressed(SDL_SCANCODE_ESCAPE)) {
     return false;
@@ -103,10 +111,10 @@ bool loop() {
   return true;
 }
 
-//----------------------------------------------------------------------------------------//
-// KILL
-//----------------------------------------------------------------------------------------//
+// Game::kill used to un-initialize components of game.
+// This method should only be called once when the game is closing.
 void kill() {
+  UI::kill();
   ResourceManager::kill();
   SoundManager::kill();
   SDL_DestroyRenderer(RENDERER);
