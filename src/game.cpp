@@ -6,6 +6,8 @@
 #include "sound_manager.h"
 #include "texture.h"
 #include "ui/UICore.h"
+#include "ui/UIDraw.h"
+#include "ui/UIInput.h"
 
 #include <SDL.h>
 #include <SDL_image.h>
@@ -99,6 +101,8 @@ bool loop() {
 
   // Update when press escape
   Input::update();
+  UI::Draw::beginFrame();
+  UI::MouseState mouse = UI::readMouse();
   if (Input::isKeyPressed(SDL_SCANCODE_ESCAPE)) {
     return false;
   }
