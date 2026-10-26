@@ -41,6 +41,8 @@ inline void kill() {
 
 // ---------------- Sound Effects ----------------
 
+// Loads a sound effect on first request and caches it. Returns nullptr on
+// failure.
 inline Mix_Chunk *get(SoundID ID) {
   const size_t index = static_cast<size_t>(ID);
   assert(index < static_cast<size_t>(SoundID::Count));
@@ -58,11 +60,13 @@ inline Mix_Chunk *get(SoundID ID) {
   return slot;
 }
 
+// Plays a sound effect once on any free channel.
 inline void play(SoundID ID) {
   if (Mix_Chunk *chunk = get(ID))
     Mix_PlayChannel(-1, chunk, 0);
 }
 
+// Plays a sound effect once on a specific channel, or -1 for any free channel.
 inline void playByChannel(SoundID ID, int channel = -1) {
   if (Mix_Chunk *chunk = get(ID))
     Mix_PlayChannel(channel, chunk, 0);
@@ -70,6 +74,8 @@ inline void playByChannel(SoundID ID, int channel = -1) {
 
 // ---------------- Music ----------------
 
+// Loads a music track on first request and caches it. Returns nullptr on
+// failure.
 inline Mix_Music *getMusic(MusicID ID) {
   const size_t index = static_cast<size_t>(ID);
   assert(index < static_cast<size_t>(MusicID::Count));
@@ -124,10 +130,12 @@ inline void stopMusic(int fadeMs = 0) {
   }
 }
 
+// Pauses the currently playing music.
 inline void pauseMusic() {
   Mix_PauseMusic();
 }
 
+// Resumes music that was paused.
 inline void resumeMusic() {
   Mix_ResumeMusic();
 }

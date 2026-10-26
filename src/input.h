@@ -13,6 +13,8 @@ inline Vector2i mousePos = {0, 0};
 inline Uint32 mouseState = 0;
 inline Uint32 prevMouseState = 0;
 
+// Captures the current keyboard and mouse state. Call once per frame before
+// any input queries.
 inline void update() {
   keyboardState = SDL_GetKeyboardState(nullptr);
 
@@ -32,6 +34,7 @@ inline void lateUpdate() {
 
 // ---------------- Keyboard ----------------
 
+// True while the key is held down.
 inline bool isKeyHeld(SDL_Scancode key) {
   if (!keyboardState)
     return false;
@@ -41,6 +44,7 @@ inline bool isKeyHeld(SDL_Scancode key) {
   return keyboardState[key];
 }
 
+// True only on the frame the key goes from up to down.
 inline bool isKeyPressed(SDL_Scancode key) {
   if (!keyboardState)
     return false;
@@ -51,6 +55,7 @@ inline bool isKeyPressed(SDL_Scancode key) {
   return curr && !prev;
 }
 
+// True only on the frame the key goes from down to up.
 inline bool isKeyReleased(SDL_Scancode key) {
   if (!keyboardState)
     return false;
@@ -63,20 +68,24 @@ inline bool isKeyReleased(SDL_Scancode key) {
 
 // ---------------- Mouse ----------------
 
+// Mouse position captured by the last update().
 inline Vector2i getMousePos() {
   return mousePos;
 }
 
+// True while the mouse button is held (button is an SDL_BUTTON_* value).
 inline bool isMouseButtonHeld(Uint8 button) {
   return mouseState & SDL_BUTTON(button);
 }
 
+// True only on the frame the mouse button is pressed.
 inline bool isMouseButtonPressed(Uint8 button) {
   bool curr = mouseState & SDL_BUTTON(button);
   bool prev = prevMouseState & SDL_BUTTON(button);
   return curr && !prev;
 }
 
+// True only on the frame the mouse button is released.
 inline bool isMouseButtonReleased(Uint8 button) {
   bool curr = mouseState & SDL_BUTTON(button);
   bool prev = prevMouseState & SDL_BUTTON(button);

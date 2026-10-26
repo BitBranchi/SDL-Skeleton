@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../input.h"
+#include "../../input.h"
 #include "UITypes.h"
 #include <SDL_mouse.h>
 #include <SDL_rect.h>

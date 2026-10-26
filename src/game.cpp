@@ -1,17 +1,18 @@
 #pragma once
 
+#include "UI.h"
 #include "input.h"
 #include "resource_manager.h"
 #include "sound.h"
 #include "sound_manager.h"
 #include "texture.h"
-#include "ui/UICore.h"
-#include "ui/UIDraw.h"
-#include "ui/UIInput.h"
+#include "ui/ImState.h"
+#include "ui/ImWidgets.h"
 
 #include <SDL.h>
 #include <SDL_image.h>
 #include <SDL_mixer.h>
+#include <SDL_render.h>
 #include <SDL_scancode.h>
 #include <SDL_ttf.h>
 #include <SDL_video.h>
@@ -94,23 +95,34 @@ bool loop() {
     }
   }
 
+  // Clear Display
+  SDL_SetRenderDrawColor(RENDERER, 0, 0, 0, 255);
+  SDL_RenderClear(RENDERER);
+
   // Game Update
   Uint64 current_tick = SDL_GetPerformanceCounter();
   float dt = (float)((current_tick - last_tick) / PERFORMANCE_FREQUENCY); // Delta Time
   last_tick = current_tick;
 
-  // Update when press escape
   Input::update();
   UI::Draw::beginFrame();
+  UI::beginFrame(UI::readMouse(), dt);
   UI::MouseState mouse = UI::readMouse();
+
+  // Quit when escape is pressed
   if (Input::isKeyPressed(SDL_SCANCODE_ESCAPE)) {
     return false;
   }
+  if (UI::button(1, {20, 20, 120, 40}, "Play")) { /* clicked */
+    return false;
+  }
+  UI::panel({100, 100, 100, 100});
 
   // Rendering
   SDL_RenderCopy(RENDERER, ResourceManager::get(TextureID::PanelBright), NULL, &r);
   SDL_RenderPresent(RENDERER);
 
+  UI::endFrame();
   Input::lateUpdate();
   return true;
 }
