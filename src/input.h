@@ -1,6 +1,6 @@
 #pragma once
 
-#include "vector2.hpp"
+#include "util/vector2.hpp"
 #include <SDL.h>
 #include <unordered_map>
 
