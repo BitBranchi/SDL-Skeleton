@@ -30,12 +30,12 @@ inline constexpr std::array TexturePaths = {
     UI_PATH "panel_dark.png",    // PanelDark
     UI_PATH "button_bright.png", // ButtonBright
     UI_PATH "button_dark.png",   // ButtonDark
-    UI_PATH "knob_bright.png",
-    UI_PATH "knob_dark.png",
-    UI_PATH "fill_bright.png",
-    UI_PATH "fill_dark.png",
-    UI_PATH "check_bright.png",
-    UI_PATH "check_dark.png",
+    UI_PATH "knob_bright.png",   // KnobBright
+    UI_PATH "knob_dark.png",     // KnobDark
+    UI_PATH "fill_bright.png",   // FillBright
+    UI_PATH "fill_dark.png",     // FillDark
+    UI_PATH "check_bright.png",  // CheckBright
+    UI_PATH "check_dark.png",    // CheckDark
 };
 
 static_assert(TexturePaths.size() == static_cast<size_t>(TextureID::Count),
