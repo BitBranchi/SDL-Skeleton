@@ -2,7 +2,7 @@
 
 #include "../../texture.h"
 #include "font.h"
-#include <SDL_pixels.h>
+#include <SDL_render.h>
 
 namespace UI {
 

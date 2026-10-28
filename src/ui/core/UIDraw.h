@@ -8,9 +8,34 @@
 #include <SDL_render.h>
 #include <algorithm>
 #include <cassert>
+#include <cmath>
 #include <vector>
 
 namespace UI::Draw {
+
+// Reusable buffers for nine-slice geometry
+inline SDL_Vertex nineSliceVerts[16];
+inline int nsIdx[54];
+inline bool isNsInit = false;
+
+inline void initNineSlice() {
+  if (isNsInit)
+    return;
+  // fill the 54 indices in row-major order for 4x4 grid
+  int k = 0;
+  for (int gr = 0; gr < 3; ++gr) {
+    for (int gc = 0; gc < 3; ++gc) {
+      int base = gr * 4 + gc;
+      nsIdx[k++] = base;
+      nsIdx[k++] = base + 1;
+      nsIdx[k++] = base + 4;
+      nsIdx[k++] = base + 1;
+      nsIdx[k++] = base + 5;
+      nsIdx[k++] = base + 4;
+    }
+  }
+  isNsInit = true;
+}
 
 // Offset + alpha applied to everything drawn while it is on the stack.
 // Scale is NOT part of it: a widget that grows or squishes computes its own
@@ -98,35 +123,64 @@ inline void nineSlice(const NineSlice &ns, const SDL_FRect &dst) {
 
   int w = 0;
   int h = 0;
-  SDL_QueryTexture(tex, nullptr, nullptr, &w, &h);
+
+  if (SDL_QueryTexture(tex, nullptr, nullptr, &w, &h) != 0 || w <= 0 || h <= 0)
+    return;
 
   // Source border can't exceed half the texture; destination border can't
   // exceed half the destination (tiny panels shrink their corners).
   const int b = std::max(0, std::min({ns.border, w / 2, h / 2}));
   const float bx = std::min(static_cast<float>(b), dst.w * 0.5f);
   const float by = std::min(static_cast<float>(b), dst.h * 0.5f);
+  // Destination gridlines (in dst space)
+  const float gx[4] = {
+      dst.x,
+      dst.x + bx,
+      dst.x + dst.w - bx,
+      dst.x + dst.w};
+  const float gy[4] = {
+      dst.y,
+      dst.y + by,
+      dst.y + dst.h - by,
+      dst.y + dst.h};
 
-  // Three columns and three rows, sharing exact float edges.
-  const int sxs[3] = {0, b, w - b};
-  const int sws[3] = {b, w - 2 * b, b};
-  const int sys[3] = {0, b, h - b};
-  const int shs[3] = {b, h - 2 * b, b};
+  // Source UVs in [0,1]
+  const float ux[4] = {
+      0.0f,
+      (float)b / (float)w,
+      (float)(w - b) / (float)w,
+      1.0f};
+  const float uy[4] = {
+      0.0f,
+      (float)b / (float)h,
+      (float)(h - b) / (float)h,
+      1.0f};
 
-  const float dxs[3] = {dst.x, dst.x + bx, dst.x + dst.w - bx};
-  const float dws[3] = {bx, dst.w - 2.0f * bx, bx};
-  const float dys[3] = {dst.y, dst.y + by, dst.y + dst.h - by};
-  const float dhs[3] = {by, dst.h - 2.0f * by, by};
+  const Transform &t = current();
+  const float a = std::clamp(t.alpha, 0.0f, 1.0f);
+  const Uint8 alpha = static_cast<Uint8>(a * 255.0f + 0.5f);
+  if (alpha == 0)
+    return;
 
-  for (int row = 0; row < 3; ++row) {
-    for (int col = 0; col < 3; ++col) {
-      if (sws[col] <= 0 || shs[row] <= 0)
-        continue;
-      if (dws[col] <= 0.0f || dhs[row] <= 0.0f)
-        continue;
-      const SDL_Rect src{sxs[col], sys[row], sws[col], shs[row]};
-      copy(tex, &src, SDL_FRect{dxs[col], dys[row], dws[col], dhs[row]});
+  SDL_Color col{255, 255, 255, alpha};
+  auto snapPt = [&](float x, float y) -> SDL_FPoint {
+    return SDL_FPoint{static_cast<float>(std::lround(x)), static_cast<float>(std::lround(y))};
+  };
+  for (int r = 0; r < 4; ++r) {
+    for (int c = 0; c < 4; ++c) {
+      const int vi = r * 4 + c;
+      // transformed + snapped position
+      const float px = gx[c] + t.x;
+      const float py = gy[r] + t.y;
+      const SDL_FPoint p = snapPt(px, py);
+
+      nineSliceVerts[vi].position = p;
+      nineSliceVerts[vi].tex_coord = SDL_FPoint{ux[c], uy[r]};
+      nineSliceVerts[vi].color = col;
     }
   }
+  SDL_SetTextureBlendMode(tex, SDL_BLENDMODE_BLEND);
+  SDL_RenderGeometry(renderer, tex, nineSliceVerts, 16, nsIdx, 54);
 }
 
 // Text at its native size, top-left at (x, y).

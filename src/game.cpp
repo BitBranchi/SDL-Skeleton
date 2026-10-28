@@ -9,6 +9,7 @@
 #include "ui/ImState.h"
 #include "ui/ImWidgets.h"
 #include "ui/core/Theme.h"
+#include "ui/core/UIDraw.h"
 
 #include <SDL.h>
 #include <SDL_image.h>
@@ -80,6 +81,7 @@ bool init() {
   // -------- Init Component Contexts --------
   ResourceManager::init(RENDERER);
   UI::init(RENDERER);
+  UI::Draw::initNineSlice();
   SoundManager::init();
   return true;
 }
