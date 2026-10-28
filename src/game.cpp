@@ -8,6 +8,7 @@
 #include "texture.h"
 #include "ui/ImState.h"
 #include "ui/ImWidgets.h"
+#include "ui/core/Theme.h"
 
 #include <SDL.h>
 #include <SDL_image.h>
@@ -26,7 +27,9 @@ SDL_Event EVENT;
 const int SCREEN_DIMENSION[2] = {1000, 600};
 float PERFORMANCE_FREQUENCY = SDL_GetPerformanceFrequency();
 Uint64 last_tick = SDL_GetPerformanceCounter();
-SDL_Rect r{0, 0, 32, 32};
+
+bool isToggle = false;
+float a = 0.0f;
 
 // Game::init used to initialize components before game or program start.
 // This method should only be called once.
@@ -78,7 +81,6 @@ bool init() {
   ResourceManager::init(RENDERER);
   UI::init(RENDERER);
   SoundManager::init();
-  SoundManager::play(SoundID::SHUTTER);
   return true;
 }
 
@@ -113,13 +115,17 @@ bool loop() {
   if (Input::isKeyPressed(SDL_SCANCODE_ESCAPE)) {
     return false;
   }
-  if (UI::button(1, {20, 20, 120, 40}, "Play")) { /* clicked */
-    return false;
+  if (UI::button(1, {20, 20, 300, 40}, "Hello World")) { /* clicked */
+    SoundManager::play(SoundID::SHUTTER);
   }
-  UI::panel({100, 100, 100, 100});
+  UI::panel({20, 60, 100, 100});
+  UI::progressBar({120, 60, 200, 40}, a);
+  if (UI::toggle(2, {320, 20, 40, 40}, isToggle)) {
+    UI::setTheme(isToggle ? UI::Themes::Bright : UI::Themes::Dark);
+  }
+  UI::slider(3, {120, 100, 200, 40}, a, 0, 1, 0.10f);
 
   // Rendering
-  SDL_RenderCopy(RENDERER, ResourceManager::get(TextureID::PanelBright), NULL, &r);
   SDL_RenderPresent(RENDERER);
 
   UI::endFrame();

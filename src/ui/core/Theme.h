@@ -48,11 +48,11 @@ inline constexpr Theme makeDark() {
   t.panel = {TextureID::PanelDark, uiBorder};
   t.button = {TextureID::ButtonDark, uiBorder};
   t.buttonHover = {TextureID::ButtonBright, uiBorder};
-  t.track = {TextureID::ButtonDark, uiBorder};
-  t.fill = {TextureID::ButtonBright, uiBorder};
-  t.handle = {TextureID::ButtonBright, uiBorder};
+  t.track = {TextureID::PanelDark, uiBorder};
+  t.fill = {TextureID::FillBright, uiBorder};
+  t.handle = {TextureID::KnobBright, uiBorder};
   t.toggleOff = {TextureID::ButtonDark, uiBorder};
-  t.toggleOn = {TextureID::ButtonBright, uiBorder};
+  t.toggleOn = {TextureID::CheckBright, uiBorder};
   return t;
 }
 
@@ -61,11 +61,11 @@ inline constexpr Theme makeBright() {
   t.panel = {TextureID::PanelBright, uiBorder};
   t.button = {TextureID::ButtonBright, uiBorder};
   t.buttonHover = {TextureID::ButtonDark, uiBorder};
-  t.track = {TextureID::ButtonBright, uiBorder};
-  t.fill = {TextureID::ButtonDark, uiBorder};
-  t.handle = {TextureID::ButtonDark, uiBorder};
-  t.toggleOff = {TextureID::ButtonBright, uiBorder};
-  t.toggleOn = {TextureID::ButtonDark, uiBorder};
+  t.track = {TextureID::PanelBright, uiBorder};
+  t.fill = {TextureID::FillBright, uiBorder};
+  t.handle = {TextureID::KnobBright, uiBorder};
+  t.toggleOff = {TextureID::ButtonDark, uiBorder};
+  t.toggleOn = {TextureID::CheckBright, uiBorder};
   return t;
 }
 
