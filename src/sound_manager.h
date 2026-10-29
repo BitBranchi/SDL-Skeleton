@@ -3,6 +3,7 @@
 #include "sound.h"
 #include <SDL2/SDL_mixer.h>
 #include <SDL_log.h>
+#include <SDL_stdinc.h>
 #include <cassert>
 #include <cstddef>
 #include <vector>
@@ -70,6 +71,28 @@ inline void play(SoundID ID) {
 inline void playByChannel(SoundID ID, int channel = -1) {
   if (Mix_Chunk *chunk = get(ID))
     Mix_PlayChannel(channel, chunk, 0);
+}
+
+// Set sound channel panning.
+// left/right argument range fron 0-255 (0 slient, 255 loudest)
+inline void setChannelPanning(int channel = -1, Uint8 left = 255, Uint8 right = 255) {
+  if (channel == -1)
+    return;
+  Mix_SetPanning(channel, left, right);
+}
+
+// Set sound channel distance
+inline void setChannelDistance(int channel = -1, Uint8 distance = 0) {
+  if (channel == -1)
+    return;
+  Mix_SetDistance(channel, distance);
+}
+
+// Set sound channel position
+inline void setChannelPosition(int channel = -1, Sint16 angle = 90, Uint8 distance = 0) {
+  if (channel == -1)
+    return;
+  Mix_SetPosition(channel, angle, distance);
 }
 
 // ---------------- Music ----------------
