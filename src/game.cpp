@@ -118,7 +118,7 @@ bool loop() {
     return false;
   }
   if (UI::button(1, {20, 20, 300, 40}, "Hello World")) { /* clicked */
-    SoundManager::play(SoundID::SHUTTER);
+    SoundManager::playWithPos(SoundID::SHUTTER, 90, 0, 1);
   }
   UI::panel({20, 60, 100, 100});
   UI::progressBar({120, 60, 200, 40}, a);

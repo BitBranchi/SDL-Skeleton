@@ -73,6 +73,15 @@ inline void playByChannel(SoundID ID, int channel = -1) {
     Mix_PlayChannel(channel, chunk, 0);
 }
 
+inline void playWithPos(SoundID ID, Sint16 angle, Uint8 distance, int channel = -1) {
+  if (Mix_Chunk *chunk = get(ID)) {
+    int ch = Mix_PlayChannel(channel, chunk, 0);
+    if (ch != -1) {
+      Mix_SetPosition(ch, angle, distance);
+    }
+  }
+}
+
 // Set sound channel panning.
 // left/right argument range fron 0-255 (0 slient, 255 loudest)
 inline void setChannelPanning(int channel = -1, Uint8 left = 255, Uint8 right = 255) {
@@ -82,6 +91,7 @@ inline void setChannelPanning(int channel = -1, Uint8 left = 255, Uint8 right = 
 }
 
 // Set sound channel distance
+// distance argument range from 0-255 (0 closet to listener, 255 furthest to the listener)
 inline void setChannelDistance(int channel = -1, Uint8 distance = 0) {
   if (channel == -1)
     return;
@@ -89,6 +99,8 @@ inline void setChannelDistance(int channel = -1, Uint8 distance = 0) {
 }
 
 // Set sound channel position
+// angle ex, : 0 north, 90 east, etc.
+// distance argument range from 0-255 (0 closet to listener, 255 furthest to the listener)
 inline void setChannelPosition(int channel = -1, Sint16 angle = 90, Uint8 distance = 0) {
   if (channel == -1)
     return;
