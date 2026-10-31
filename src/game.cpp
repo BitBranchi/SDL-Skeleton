@@ -113,19 +113,7 @@ bool loop() {
   UI::beginFrame(UI::readMouse(), dt);
   UI::MouseState mouse = UI::readMouse();
 
-  // Quit when escape is pressed
-  if (Input::isKeyPressed(SDL_SCANCODE_ESCAPE)) {
-    return false;
-  }
-  if (UI::button(1, {20, 20, 300, 40}, "Hello World")) { /* clicked */
-    SoundManager::playWithPos(SoundID::SHUTTER, 90, 0, 1);
-  }
-  UI::panel({20, 60, 100, 100});
-  UI::progressBar({120, 60, 200, 40}, a);
-  if (UI::toggle(2, {320, 20, 40, 40}, isToggle)) {
-    UI::setTheme(isToggle ? UI::Themes::Bright : UI::Themes::Dark);
-  }
-  UI::slider(3, {120, 100, 200, 40}, a, 0, 1, 0.10f);
+  // <-- Your update code here
 
   // Rendering
   SDL_RenderPresent(RENDERER);
