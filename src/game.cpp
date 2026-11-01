@@ -1,14 +1,11 @@
 #pragma once
 
-#include "UI.h"
 #include "input.h"
 #include "resource_manager.h"
-#include "sound.h"
 #include "sound_manager.h"
 #include "texture.h"
 #include "ui/ImState.h"
 #include "ui/ImWidgets.h"
-#include "ui/core/Theme.h"
 #include "ui/core/UIDraw.h"
 
 #include <SDL.h>
@@ -28,9 +25,6 @@ SDL_Event EVENT;
 const int SCREEN_DIMENSION[2] = {1000, 600};
 float PERFORMANCE_FREQUENCY = SDL_GetPerformanceFrequency();
 Uint64 last_tick = SDL_GetPerformanceCounter();
-
-bool isToggle = false;
-float a = 0.0f;
 
 // Game::init used to initialize components before game or program start.
 // This method should only be called once.
@@ -114,6 +108,8 @@ bool loop() {
   UI::MouseState mouse = UI::readMouse();
 
   // <-- Your update code here
+  UI::button(0, {20, 20, 400, 100}, "");
+  UI::image(TextureID::CheckDark, {20, 121, 400, 400});
 
   // Rendering
   SDL_RenderPresent(RENDERER);
