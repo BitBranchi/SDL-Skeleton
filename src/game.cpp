@@ -1,5 +1,6 @@
 #pragma once
 
+#include "camera.h"
 #include "input.h"
 #include "resource_manager.h"
 #include "sound_manager.h"
@@ -7,15 +8,19 @@
 #include "ui/ImState.h"
 #include "ui/ImWidgets.h"
 #include "ui/core/UIDraw.h"
+#include "ui/core/UITypes.h"
+#include "util/vector2.hpp"
 
 #include <SDL.h>
 #include <SDL_image.h>
 #include <SDL_mixer.h>
+#include <SDL_rect.h>
 #include <SDL_render.h>
 #include <SDL_scancode.h>
 #include <SDL_ttf.h>
 #include <SDL_video.h>
 #include <iostream>
+#include <iterator>
 
 namespace Game {
 std::string TITLE = "SDL2";
@@ -23,6 +28,8 @@ SDL_Window *WINDOW = NULL;
 SDL_Renderer *RENDERER = NULL;
 SDL_Event EVENT;
 const int SCREEN_DIMENSION[2] = {1000, 600};
+Camera CAMERA;
+CameraView VIEW;
 float PERFORMANCE_FREQUENCY = SDL_GetPerformanceFrequency();
 Uint64 last_tick = SDL_GetPerformanceCounter();
 
@@ -73,6 +80,10 @@ bool init() {
   }
 
   // -------- Init Component Contexts --------
+  CAMERA.viewSize = Vector2f{static_cast<float>(SCREEN_DIMENSION[0]),
+                             static_cast<float>(SCREEN_DIMENSION[1])};
+  CAMERA.worldMin = Vector2f{0.0f, 0.0f};
+  CAMERA.worldMax = Vector2f{2000.0f, 1200.0f};
   ResourceManager::init(RENDERER);
   UI::init(RENDERER);
   UI::Draw::initNineSlice();
@@ -80,6 +91,7 @@ bool init() {
   return true;
 }
 
+SDL_Rect what{0, 0, 40, 40};
 // Game::loop used to call game loop for updating.
 // return false when game stop or crash.
 bool loop() {
@@ -106,6 +118,17 @@ bool loop() {
   UI::beginFrame(UI::readMouse(), dt);
 
   // <-- Your update code here
+  if (Input::isKeyPressed(SDL_SCANCODE_A)) {
+    CAMERA.target.x -= 40;
+  }
+  if (Input::isKeyPressed(SDL_SCANCODE_D)) {
+    CAMERA.target.x += 40;
+  }
+
+  // Camera follows CAMERA.target; every world draw uses VIEW.
+  CAMERA.update(dt);
+  VIEW = CameraView(CAMERA);
+  drawSprite(RENDERER, ResourceManager::get(TextureID::NoTexture), NULL, UI::toF(what), VIEW);
 
   // Rendering
   SDL_RenderPresent(RENDERER);
