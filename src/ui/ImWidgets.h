@@ -11,7 +11,9 @@
 
 namespace UI {
 
-enum class Align { Left, Center, Right };
+enum class Align { Left,
+                   Center,
+                   Right };
 
 namespace Im {
 
@@ -86,6 +88,35 @@ inline bool button(int id, const SDL_Rect &r, std::string_view text,
     Draw::textCentered(Im::ensureText(s, text, 0), box);
 
   return s.press.clicked;
+}
+
+// ---------------- Image Button ----------------
+// Pure image button with click/hover/press interaction. Returns true on click.
+inline bool imageButton(int id, const SDL_Rect &r, TextureID icon,
+                        std::string_view text = {}, bool enabled = true) {
+  const Theme &th = theme();
+  Im::WidgetState &s = Im::interact(id, r, enabled);
+
+  // Wider and shorter while hovered, and drops a little while pressed.
+  const float grow = th.squish * s.hoverT.value();
+  const float drop = th.pressOffset * s.pressT.value();
+  const SDL_FRect box{r.x - grow * 0.5f, r.y + grow * 0.5f + drop, r.w + grow,
+                      r.h - grow};
+
+  const Draw::Scope dim(
+      Draw::Transform{0.0f, 0.0f, enabled ? 1.0f : th.disabledAlpha});
+
+  Draw::texture(icon, box);
+
+  if (!text.empty())
+    Draw::textCentered(Im::ensureText(s, text, 0), box);
+
+  return s.press.clicked;
+}
+
+inline bool imageButton(int id, const SDL_Rect &r, TextureID icon,
+                        bool enabled) {
+  return imageButton(id, r, icon, {}, enabled);
 }
 
 // ---------------- Toggle ----------------

@@ -101,19 +101,16 @@ bool loop() {
   Uint64 current_tick = SDL_GetPerformanceCounter();
   float dt = (float)((current_tick - last_tick) / PERFORMANCE_FREQUENCY); // Delta Time
   last_tick = current_tick;
-
   Input::update();
   UI::Draw::beginFrame();
   UI::beginFrame(UI::readMouse(), dt);
-  UI::MouseState mouse = UI::readMouse();
 
   // <-- Your update code here
-  UI::button(0, {20, 20, 400, 100}, "");
-  UI::image(TextureID::CheckDark, {20, 121, 400, 400});
 
   // Rendering
   SDL_RenderPresent(RENDERER);
 
+  // End-frame update
   UI::endFrame();
   Input::lateUpdate();
   return true;
