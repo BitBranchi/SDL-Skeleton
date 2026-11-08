@@ -29,15 +29,21 @@ Every frame needs this order. `Game::loop()` already does it; keep it if you res
 Input::update();                          // 1. snapshot input
 UI::beginFrame(UI::readMouse(), dt);      // 2. reset draw stack, store mouse + dt
 
-// ... game logic and UI drawing ...
+// ... game logic ...
 
-SDL_RenderPresent(RENDERER);              // 3. present
-UI::endFrame();                           // 4. asserts the transform stack is balanced
-Input::lateUpdate();                      // 5. current -> previous for edge detection
+CAMERA.update(dt);                        // 3. smooth the camera toward its target
+VIEW = CameraView(CAMERA);                // 4. snapshot the world->screen transform
+
+// ... world drawing (drawSprite with VIEW) and UI drawing ...
+
+SDL_RenderPresent(RENDERER);              // 5. present
+UI::endFrame();                           // 6. asserts the transform stack is balanced
+Input::lateUpdate();                      // 7. current -> previous for edge detection
 ```
 
 * `dt` comes from `SDL_GetPerformanceCounter()`; use it for anything time-based.
 * Draw **before** `SDL_RenderPresent()`.
+* Update `VIEW` after gameplay and before any world draw, so every sprite uses the same transform.
 * If `UI::endFrame()` trips its assert, a `Draw::push()` has no matching `pop()` (or a `Draw::Scope` outlived the frame).
 
 ---
@@ -354,7 +360,34 @@ Use one `Random` (a global `rng` already exists) and `split()` when you need an 
 
 ---
 
-## 12. Screen changes
+## 12. Camera and world drawing
+
+`Game::CAMERA` is the follow camera; `Game::VIEW` is its per-frame transform. Configure bounds in `Game::init()`, move `target` during gameplay, and let `Game::loop()` update/snapshot it.
+
+```cpp
+// In Game::init():
+CAMERA.viewSize = {static_cast<float>(SCREEN_DIMENSION[0]), static_cast<float>(SCREEN_DIMENSION[1])};
+CAMERA.worldMin = {0.0f, 0.0f};
+CAMERA.worldMax = {2000.0f, 1200.0f}; // equal min/max disables clamping
+CAMERA.deadzone = {80.0f, 60.0f};     // half-size of the free-move box
+CAMERA.follow = 6.0f;                 // higher = snappier
+
+// In the game-logic block:
+CAMERA.target = player.position;
+
+// Drawing a world sprite (VIEW is already updated for this frame):
+SDL_FRect world{player.position.x, player.position.y, 32.0f, 32.0f};
+drawSprite(RENDERER, tex, nullptr, world, VIEW);
+```
+
+* `CAMERA.pos` is the camera center in world space; `VIEW.origin` is the top-left world point. They are different.
+* Mouse → world: `Vector2f world = VIEW.toWorld(Vector2f(Input::getMousePos()));`
+* `drawSprite` culls, transforms, snaps to whole pixels and draws. Pass `false` as the last argument for sub-pixel motion.
+* UI drawn with `UI::Draw`/widgets is screen space and ignores the camera. Do not mix the two coordinate spaces.
+
+---
+
+## 13. Screen changes
 
 * Keep per-screen widget state minimal — widgets only cache hover/press animations and text. If you want a fresh screen to animate from zero, call `UI::clearState()`; it drops every cached text texture too, so it is cheap only on transitions.
 * `clearState()` is safe while the renderer exists (i.e. not after `Game::kill()`).
@@ -362,7 +395,7 @@ Use one `Random` (a global `rng` already exists) and `split()` when you need an 
 
 ---
 
-## 13. Common mistakes
+## 14. Common mistakes
 
 | Symptom | Cause |
 | --- | --- |
@@ -375,12 +408,14 @@ Use one `Random` (a global `rng` already exists) and `split()` when you need an 
 | Assert: unbalanced `Draw::push / pop` | A `Scope` created outside the `beginFrame`/`endFrame` window, or a manual `push()` without `pop()` |
 | Everything disappears after `setTheme` | Theme was a local variable; it must be a global/`constexpr` object |
 | Hover flicker on a squishing button | Do not hit-test the animated rect — use the base rect (widgets already do) |
+| Camera does not move | `CAMERA.target` was never set, or `CAMERA.update(dt)` / `VIEW = CameraView(CAMERA)` is missing from the frame |
+| Sprites or UI appear offset/scroll with the world | Mixing coordinate spaces — sprites need `VIEW`/`drawSprite`, UI needs `UI::Draw` |
 | New code "not found" by the compiler | Only `main.cpp` is compiled; new `.cpp` files need `SOURCE_FILES` and a removed `#include` |
 | Asset not found at runtime | Working directory is not `build/<Config>` or the repo root, or the asset was added after the last POST_BUILD copy |
 
 ---
 
-## 14. Where to put new code
+## 15. Where to put new code
 
 * Gameplay state belongs in `Game` (or a `Game::State`-style struct) inside `game.cpp`, so it does not pollute the UI toolkit.
 * Reusable helpers go in headers under `src/` (or `src/util/`), written as `inline` definitions.

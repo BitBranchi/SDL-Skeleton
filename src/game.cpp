@@ -1,42 +1,32 @@
-#pragma once
-
 #include "camera.h"
 #include "input.h"
 #include "resource_manager.h"
 #include "sound_manager.h"
-#include "texture.h"
 #include "ui/ImState.h"
-#include "ui/ImWidgets.h"
 #include "ui/core/UIDraw.h"
-#include "ui/core/UITypes.h"
 #include "util/vector2.hpp"
 
 #include <SDL.h>
 #include <SDL_image.h>
 #include <SDL_mixer.h>
-#include <SDL_rect.h>
 #include <SDL_render.h>
-#include <SDL_scancode.h>
 #include <SDL_ttf.h>
 #include <SDL_video.h>
 #include <iostream>
-#include <iterator>
+#include <string>
 
 namespace Game {
 std::string TITLE = "SDL2";
-SDL_Window *WINDOW = NULL;
-SDL_Renderer *RENDERER = NULL;
+SDL_Window *WINDOW = nullptr;
+SDL_Renderer *RENDERER = nullptr;
 SDL_Event EVENT;
 const int SCREEN_DIMENSION[2] = {1000, 600};
 Camera CAMERA;
 CameraView VIEW;
-float PERFORMANCE_FREQUENCY = SDL_GetPerformanceFrequency();
+const float PERFORMANCE_FREQUENCY = SDL_GetPerformanceFrequency();
 Uint64 last_tick = SDL_GetPerformanceCounter();
 
-SDL_Rect what{0, 0, 40, 40};
-SDL_Rect a{200, 200, 40, 40};
-// Game::loop used to call game loop for updating.
-// return false when game stop or crash.
+// Advances one frame. Returns false when the game should stop.
 bool loop() {
   // Event Polling
   while (SDL_PollEvent(&EVENT)) {
@@ -53,34 +43,17 @@ bool loop() {
   SDL_RenderClear(RENDERER);
 
   // Game Update
-  Uint64 current_tick = SDL_GetPerformanceCounter();
-  float dt = (float)((current_tick - last_tick) / PERFORMANCE_FREQUENCY); // Delta Time
+  const Uint64 current_tick = SDL_GetPerformanceCounter();
+  const float dt = static_cast<float>(current_tick - last_tick) / PERFORMANCE_FREQUENCY; // Delta Time
   last_tick = current_tick;
   Input::update();
-  UI::Draw::beginFrame();
   UI::beginFrame(UI::readMouse(), dt);
 
   // <-- Your update code here
-  if (Input::isKeyHeld(SDL_SCANCODE_A)) {
-    what.x -= 40;
-  }
-  if (Input::isKeyHeld(SDL_SCANCODE_D)) {
-    what.x += 40;
-  }
-  if (Input::isKeyHeld(SDL_SCANCODE_W)) {
-    what.y -= 40;
-  }
-  if (Input::isKeyHeld(SDL_SCANCODE_S)) {
-    what.y += 40;
-  }
-  CAMERA.target.x = what.x;
-  CAMERA.target.y = what.y;
 
   // Camera follows CAMERA.target; every world draw uses VIEW.
   CAMERA.update(dt);
   VIEW = CameraView(CAMERA);
-  drawSprite(RENDERER, ResourceManager::get(TextureID::NoTexture), NULL, UI::toF(what), VIEW);
-  drawSprite(RENDERER, ResourceManager::get(TextureID::ButtonBright), NULL, UI::toF(a), VIEW);
 
   // Rendering
   SDL_RenderPresent(RENDERER);
@@ -91,16 +64,15 @@ bool loop() {
   return true;
 }
 
-// Game::init used to initialize components before game or program start.
-// This method should only be called once.
-// return false if failed.
+// Game::init initializes every component. Call it once before the loop starts.
+// Returns false on failure.
 bool init() {
   if (SDL_Init(SDL_INIT_EVERYTHING) < 0) {
     std::cout << "Failed to init SDL2 : " << SDL_GetError();
     return false;
   }
 
-  // -------- Init WIndow and Renderer --------
+  // -------- Init Window and Renderer --------
   WINDOW = SDL_CreateWindow(TITLE.c_str(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, SCREEN_DIMENSION[0], SCREEN_DIMENSION[1], SDL_WINDOW_SHOWN);
   if (!WINDOW) {
     std::cout << "Failed creating window : " << SDL_GetError();
@@ -113,7 +85,7 @@ bool init() {
     return false;
   }
   // -------- Init other SDL2 extensions --------
-  // These included : SDL_Image, SDL_Mixer, Open Audio
+  // SDL_Image, SDL_Mixer, and audio
   int FLAGS = IMG_INIT_PNG | IMG_INIT_JPG;
   int INITTED = IMG_Init(FLAGS);
   if ((INITTED & FLAGS) != FLAGS) {
@@ -150,12 +122,11 @@ bool init() {
   return true;
 }
 
-// Game::kill used to un-initialize components of game.
-// This method should only be called once when the game is closing.
+// Game::kill tears down components in reverse init order. Call it once on shutdown.
 void kill() {
+  SoundManager::kill();
   UI::kill();
   ResourceManager::kill();
-  SoundManager::kill();
   SDL_DestroyRenderer(RENDERER);
   SDL_DestroyWindow(WINDOW);
   Mix_CloseAudio();

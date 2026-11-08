@@ -1,6 +1,6 @@
 # SDL2-Skeleton — Documentation & Reference
 
-Hand-written SDL2 skeleton in C++17: one game loop, an immediate-mode UI toolkit, texture/audio caches and a small math/util layer. Everything is header-only apart from `src/main.cpp` (which pulls in `src/game.cpp`).
+Hand-written SDL2 skeleton in C++17: one game loop, a follow camera, an immediate-mode UI toolkit, texture/audio caches and a small math/util layer. Everything is header-only apart from `src/main.cpp` (which pulls in `src/game.cpp`).
 
 ---
 
@@ -39,6 +39,7 @@ Asset paths in code are relative (`assets/...`), so run from `build/<Config>` or
 | --- | --- |
 | `src/main.cpp` | Entry point: `init` → `while (loop())` → `kill` |
 | `src/game.cpp` | SDL setup, window/renderer ownership, frame loop, demo screen, shutdown |
+| `src/camera.h` | `Camera` follow/zoom/bounds state, `CameraView` world→screen transform + culling, `drawSprite` |
 | `src/input.h` | Keyboard/mouse snapshot with per-frame edge detection |
 | `src/texture.h` | `TextureID` enum + `TexturePaths` table (+ `static_assert` size check) |
 | `src/resource_manager.h` | Lazy `SDL_Texture` cache |
@@ -71,9 +72,10 @@ main()
 3. `IMG_Init(PNG | JPG)`
 4. `Mix_Init(OGG)`, `Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048)` (master volume 50 %)
 5. `TTF_Init()`
-6. `ResourceManager::init(renderer)`
-7. `UI::init(renderer)`, `UI::Draw::initNineSlice()`
-8. `SoundManager::init()`
+6. Configure `CAMERA` (deadzone, `viewSize`, world bounds)
+7. `ResourceManager::init(renderer)`
+8. `UI::init(renderer)`, `UI::Draw::initNineSlice()`
+9. `SoundManager::init()`
 
 Each step prints to `std::cout` and returns `false` on failure; `init` is call-once.
 
@@ -84,19 +86,20 @@ poll events (SDL_QUIT → return false)
 clear to black
 dt = (now - last_tick) / SDL_GetPerformanceFrequency()
 Input::update()                     // snapshot keyboard + mouse
-UI::Draw::beginFrame()              // reset transform stack
-UI::beginFrame(UI::readMouse(), dt) // store mouse/dt, reset stack again
+UI::beginFrame(UI::readMouse(), dt) // store mouse/dt, reset draw stack
 [game logic / widgets]
+CAMERA.update(dt)                   // smooth toward CAMERA.target
+VIEW = CameraView(CAMERA)           // snapshot transform for this frame
 SDL_RenderPresent()
 UI::endFrame()                      // assert transform stack balanced
 Input::lateUpdate()                 // current → previous for next frame
 ```
 
-Draw calls must happen **before** `SDL_RenderPresent()`; anything drawn after it lands in the next frame.
+Draw calls must happen **before** `SDL_RenderPresent()`; anything drawn after it lands in the next frame. Camera updates run after gameplay has moved things and before any world drawing, so every draw sees the same `VIEW`.
 
 ### `Game::kill()` — reverse order
 
-`UI::kill()` (closes fonts, nulls the renderer) → `ResourceManager::kill()` (destroys textures) → `SoundManager::kill()` (frees chunks/music) → destroy renderer → destroy window → `Mix_CloseAudio` → `IMG_Quit` → `Mix_Quit` → `TTF_Quit` → `SDL_Quit`.
+`SoundManager::kill()` (frees chunks/music) → `UI::kill()` (closes fonts, nulls the renderer) → `ResourceManager::kill()` (destroys textures) → destroy renderer → destroy window → `Mix_CloseAudio` → `IMG_Quit` → `Mix_Quit` → `TTF_Quit` → `SDL_Quit`.
 
 `UI::kill()` must run before `SDL_DestroyRenderer()`: cached `TextTexture`s check `UI::renderer` in their destructor and skip `SDL_DestroyTexture` once it is null (the renderer already freed them).
 
@@ -109,7 +112,7 @@ Draw calls must happen **before** `SDL_RenderPresent()`; anything drawn after it
 | `Game::EVENT` | `SDL_Event` | Polled in `loop()` |
 | `Game::SCREEN_DIMENSION` | `const int[2]` | `{1000, 600}` |
 | `Game::PERFORMANCE_FREQUENCY`, `last_tick` | `float`, `Uint64` | Delta-time source |
-| `Game::isToggle`, `Game::a` | `bool`, `float` | Demo state used by the sample widgets |
+| `Game::CAMERA` / `Game::VIEW` | `Camera` / `CameraView` | Follow state and this frame's world→screen snapshot |
 
 ---
 
@@ -450,11 +453,60 @@ Caveats: `pick` returns by value (`auto` decays the reference), and `split()` is
 
 ---
 
-## 10. Invariants & gotchas
+## 10. Camera — `camera.h`
+
+The camera never mutates world data. `Camera` owns the follow state; `CameraView` is a per-frame snapshot that converts world coordinates to screen coordinates and clamps to level bounds. All world drawing goes through it.
+
+### 10.1 `Camera`
+
+| Member | Default | Notes |
+| --- | --- | --- |
+| `target` | `{}` | World point to follow |
+| `pos` | `{}` | Smoothed camera center, world space |
+| `deadzone` | `{80, 60}` | Half-size of the box the target can move inside without moving the camera (`Game::init` overrides it to `{0, 0}`) |
+| `worldMin` / `worldMax` | `{}` | Level bounds; set equal to disable clamping |
+| `viewSize` | `{1280, 720}` | Screen size in pixels (`Game::init` sets it to `SCREEN_DIMENSION`) |
+| `zoom` | `1.0f` | Screen pixels per world unit |
+| `follow` | `6.0f` | Smoothing rate; higher is snappier |
+
+`update(dt)` moves `pos` toward `target` one deadzone edge at a time, then applies exponential smoothing (`1 - exp(-follow * dt)`), so follow speed is framerate-independent. Call it once per frame after gameplay has moved the target. `pos` is a center point, not a top-left corner.
+
+### 10.2 `CameraView`
+
+`CameraView view = CAMERA;` (or assign in the frame loop) captures the transform for one frame.
+
+| Member | Notes |
+| --- | --- |
+| `origin` | World position of the screen's top-left corner |
+| `size` | Screen size in pixels |
+| `visible` | Visible world size (`size / zoom`), handy for culling |
+| `zoom` | Copied from `Camera` |
+
+Construction clamps `origin` to `[worldMin, worldMax - size / zoom]` on each axis when the bounds differ. API:
+
+| Method | Returns | Notes |
+| --- | --- | --- |
+| `toScreen(const SDL_FRect&)` | `SDL_FRect` | Scales position and size by `zoom` |
+| `toScreen(Vector2f)` | `Vector2f` | Point conversion |
+| `toWorld(Vector2f)` | `Vector2f` | Inverse of `toScreen`; use for mouse-to-world |
+| `visibleRect(const SDL_FRect&)` | `bool` | Cheap AABB cull against the visible region |
+
+### 10.3 `drawSprite`
+
+```cpp
+drawSprite(RENDERER, texture, &src, worldRect, VIEW);        // pixel art: snapped
+drawSprite(RENDERER, texture, &src, worldRect, VIEW, false); // smooth/sub-pixel
+```
+
+`drawSprite` culls, transforms, optionally snaps to whole pixels (`UI::snap`) and calls `SDL_RenderCopy`. It is the intended path for world objects; draw UI separately through `UI::Draw` (screen space, unaffected by the camera). Pass `pixelSnap = false` if a sprite should move at sub-pixel precision; snapping avoids shimmer on pixel art.
+
+---
+
+## 11. Invariants & gotchas
 
 1. **One translation unit.** Only `src/main.cpp` is compiled; it includes `game.cpp`.
-2. **Init order matters.** Renderer → `ResourceManager::init` → `UI::init` → `UI::Draw::initNineSlice` → `SoundManager::init`. Shutdown is the reverse, and `UI::kill()` must precede `SDL_DestroyRenderer()`.
-3. **`UI::beginFrame` calls `Draw::beginFrame` itself.** `Game::loop()` also calls `UI::Draw::beginFrame()` first, which is a redundant (harmless) reset.
+2. **Init order matters.** Renderer → `CAMERA` config → `ResourceManager::init` → `UI::init` → `UI::Draw::initNineSlice` → `SoundManager::init`. Shutdown is the reverse, and `UI::kill()` must precede `SDL_DestroyRenderer()`.
+3. **Camera state is snapshot per frame.** `CAMERA.update(dt)` runs after gameplay and `VIEW = CameraView(CAMERA)` runs once before drawing; do not rebuild `VIEW` mid-frame or earlier draws and hit-tests will disagree.
 4. **Draw before present.** `UI::endFrame()` and `Input::lateUpdate()` run after `SDL_RenderPresent()`; rendering issued after present appears a frame later.
 5. **Widget IDs share one map.** Duplicate IDs across widget types corrupt each other's hover/press/text state.
 6. **Hit-testing uses base rects plus the current transform offset.** Widgets drawn inside a `Draw::push` are clickable where they appear, while their own squish animation cannot feed back into hover.
@@ -464,3 +516,4 @@ Caveats: `pick` returns by value (`auto` decays the reference), and `split()` is
 10. **Single music track.** SDL_mixer streams one `Mix_Music` at a time; `isMusicPlaying()` is also true while paused.
 11. **`ensurePanelRect` / `panelRect[9]` / `PANEL_BORDER` are legacy.** The current nine-slice path queries the texture itself and ignores them.
 12. **`util/randomizer.h` is not wired in.** Include it manually where you need RNG; `input.h` pulls in `util/vector2.hpp` transitively.
+13. **World space vs screen space.** `drawSprite` applies `VIEW`; `UI::Draw` does not. Do not feed world coordinates to UI widgets or raw coordinates to `drawSprite`.
