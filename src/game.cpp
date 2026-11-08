@@ -33,6 +33,64 @@ CameraView VIEW;
 float PERFORMANCE_FREQUENCY = SDL_GetPerformanceFrequency();
 Uint64 last_tick = SDL_GetPerformanceCounter();
 
+SDL_Rect what{0, 0, 40, 40};
+SDL_Rect a{200, 200, 40, 40};
+// Game::loop used to call game loop for updating.
+// return false when game stop or crash.
+bool loop() {
+  // Event Polling
+  while (SDL_PollEvent(&EVENT)) {
+    switch (EVENT.type) {
+    case SDL_QUIT:
+      return false;
+    default:
+      break;
+    }
+  }
+
+  // Clear Display
+  SDL_SetRenderDrawColor(RENDERER, 0, 0, 0, 255);
+  SDL_RenderClear(RENDERER);
+
+  // Game Update
+  Uint64 current_tick = SDL_GetPerformanceCounter();
+  float dt = (float)((current_tick - last_tick) / PERFORMANCE_FREQUENCY); // Delta Time
+  last_tick = current_tick;
+  Input::update();
+  UI::Draw::beginFrame();
+  UI::beginFrame(UI::readMouse(), dt);
+
+  // <-- Your update code here
+  if (Input::isKeyHeld(SDL_SCANCODE_A)) {
+    what.x -= 40;
+  }
+  if (Input::isKeyHeld(SDL_SCANCODE_D)) {
+    what.x += 40;
+  }
+  if (Input::isKeyHeld(SDL_SCANCODE_W)) {
+    what.y -= 40;
+  }
+  if (Input::isKeyHeld(SDL_SCANCODE_S)) {
+    what.y += 40;
+  }
+  CAMERA.target.x = what.x;
+  CAMERA.target.y = what.y;
+
+  // Camera follows CAMERA.target; every world draw uses VIEW.
+  CAMERA.update(dt);
+  VIEW = CameraView(CAMERA);
+  drawSprite(RENDERER, ResourceManager::get(TextureID::NoTexture), NULL, UI::toF(what), VIEW);
+  drawSprite(RENDERER, ResourceManager::get(TextureID::ButtonBright), NULL, UI::toF(a), VIEW);
+
+  // Rendering
+  SDL_RenderPresent(RENDERER);
+
+  // End-frame update
+  UI::endFrame();
+  Input::lateUpdate();
+  return true;
+}
+
 // Game::init used to initialize components before game or program start.
 // This method should only be called once.
 // return false if failed.
@@ -80,6 +138,7 @@ bool init() {
   }
 
   // -------- Init Component Contexts --------
+  CAMERA.deadzone = Vector2f{0.0f, 0.0f};
   CAMERA.viewSize = Vector2f{static_cast<float>(SCREEN_DIMENSION[0]),
                              static_cast<float>(SCREEN_DIMENSION[1])};
   CAMERA.worldMin = Vector2f{0.0f, 0.0f};
@@ -88,54 +147,6 @@ bool init() {
   UI::init(RENDERER);
   UI::Draw::initNineSlice();
   SoundManager::init();
-  return true;
-}
-
-SDL_Rect what{0, 0, 40, 40};
-// Game::loop used to call game loop for updating.
-// return false when game stop or crash.
-bool loop() {
-  // Event Polling
-  while (SDL_PollEvent(&EVENT)) {
-    switch (EVENT.type) {
-    case SDL_QUIT:
-      return false;
-    default:
-      break;
-    }
-  }
-
-  // Clear Display
-  SDL_SetRenderDrawColor(RENDERER, 0, 0, 0, 255);
-  SDL_RenderClear(RENDERER);
-
-  // Game Update
-  Uint64 current_tick = SDL_GetPerformanceCounter();
-  float dt = (float)((current_tick - last_tick) / PERFORMANCE_FREQUENCY); // Delta Time
-  last_tick = current_tick;
-  Input::update();
-  UI::Draw::beginFrame();
-  UI::beginFrame(UI::readMouse(), dt);
-
-  // <-- Your update code here
-  if (Input::isKeyPressed(SDL_SCANCODE_A)) {
-    CAMERA.target.x -= 40;
-  }
-  if (Input::isKeyPressed(SDL_SCANCODE_D)) {
-    CAMERA.target.x += 40;
-  }
-
-  // Camera follows CAMERA.target; every world draw uses VIEW.
-  CAMERA.update(dt);
-  VIEW = CameraView(CAMERA);
-  drawSprite(RENDERER, ResourceManager::get(TextureID::NoTexture), NULL, UI::toF(what), VIEW);
-
-  // Rendering
-  SDL_RenderPresent(RENDERER);
-
-  // End-frame update
-  UI::endFrame();
-  Input::lateUpdate();
   return true;
 }
 
